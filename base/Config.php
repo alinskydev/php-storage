@@ -28,9 +28,4 @@ class Config
 
         return self::$instance;
     }
-
-    public static function get(string $param): ?string
-    {
-        return static::$data[$param];
-    }
 }

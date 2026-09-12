@@ -58,7 +58,7 @@ class FileHelper
 
                             if ($size <= 0 || $size > 1920) throw new Exception('Incorrect size');
 
-                            $thumbPath = "storage/thumbs/$action";
+                            $thumbPath = "../public/storage/thumbs/$action";
                             $thumbPath .= $size ? "/$size" : '';
                             $thumbName = hash('sha256', $sourceFile) . filemtime($sourceFile) . ".$extension";
 
@@ -169,7 +169,7 @@ class FileHelper
             if (!in_array($mimeType, $config->mimeTypes)) throw new Exception('File mime type is incorrect');
             if (!in_array($extension, $config->extensions)) throw new Exception('File extension is incorrect');
 
-            $returnPath = "storage/$config->folder/$folder/" . date('Y/m/d');
+            $returnPath = "../public/storage/$config->folder/$folder/" . date('Y/m/d');
             $savePath = __DIR__ . "/$returnPath";
             $name = uniqid() . '_' . StringHelper::uuidv4() . ".$extension";
 
