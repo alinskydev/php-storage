@@ -41,7 +41,7 @@ class FileHelper
             $paths[$key]['original']['raw'] = "$baseUrl/$path";
 
             try {
-                $sourceFile = __DIR__ . "/$path";
+                $sourceFile = dirname(__DIR__) . "/public/$path";
 
                 if (!$path) throw new \Exception('File not exists');
                 if (!is_file($sourceFile)) throw new \Exception('File not exists');
@@ -58,11 +58,11 @@ class FileHelper
 
                             if ($size <= 0 || $size > 1920) throw new Exception('Incorrect size');
 
-                            $thumbPath = "../public/storage/thumbs/$action";
+                            $thumbPath = "/public/storage/thumbs/$action";
                             $thumbPath .= $size ? "/$size" : '';
                             $thumbName = hash('sha256', $sourceFile) . filemtime($sourceFile) . ".$extension";
 
-                            $savePath = __DIR__ . "/$thumbPath";
+                            $savePath = dirname(__DIR__) . $thumbPath;
                             $thumbFile = "$savePath/$thumbName";
                             $thumbUrl = "$thumbPath/$thumbName";
 
@@ -169,8 +169,8 @@ class FileHelper
             if (!in_array($mimeType, $config->mimeTypes)) throw new Exception('File mime type is incorrect');
             if (!in_array($extension, $config->extensions)) throw new Exception('File extension is incorrect');
 
-            $returnPath = "../public/storage/$config->folder/$folder/" . date('Y/m/d');
-            $savePath = __DIR__ . "/$returnPath";
+            $returnPath = "storage/$config->folder/$folder/" . date('Y/m/d');
+            $savePath = dirname(__DIR__) . "/public/$returnPath";
             $name = uniqid() . '_' . StringHelper::uuidv4() . ".$extension";
 
             if (!is_dir($savePath)) {
@@ -180,7 +180,7 @@ class FileHelper
 
             ($config->savingProcess)($file, $filePath, $size, $savePath, $name);
 
-            $paths[] = "$returnPath/$name";
+            $paths[] = "/$returnPath/$name";
         });
 
         return ResponseHelper::success($response, ['files' => $paths]);
