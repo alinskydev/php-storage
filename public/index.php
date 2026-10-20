@@ -8,11 +8,11 @@ use Base\ResponseHelper;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
 
 $app = AppFactory::create();
 $config = Config::init();
-$headers = getallheaders();
 
 $errorMiddleware = $app->addErrorMiddleware($config->isDebugEnabled, true, true);
 $errorMiddleware->setDefaultErrorHandler(function (
@@ -26,9 +26,15 @@ $errorMiddleware->setDefaultErrorHandler(function (
     return ResponseHelper::error($response, $exception->getMessage());
 });
 
-if (($headers['Storage-Secret-Key'] ?? null) !== $config->secretKey) {
-    throw new Exception('Not found.');
-}
+$app->add(function (Request $request, RequestHandler $handler) use ($app, $config) {
+    $secretKey = $request->getHeaderLine('Storage-Secret-Key');
+
+    if ($config->secretKey === '' || !hash_equals($config->secretKey, $secretKey)) {
+        return ResponseHelper::error($app->getResponseFactory()->createResponse(), 'Not found.');
+    }
+
+    return $handler->handle($request);
+});
 
 $app->get('/welcome', function (Request $request, Response $response, $args) {
     return ResponseHelper::success($response, ['message' => 'Welcome!']);
