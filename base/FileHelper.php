@@ -27,6 +27,8 @@ class FileHelper
         $paths = [];
 
         foreach ($files as $key => $file) {
+            if (!isset($file['path']) || !isset($file['action'])) throw new Exception('Path and action are required');
+
             $path = $file['path'] ?? null;
             $action = $file['action'] ?? null;
             $sizes = $file['sizes'] ?? null;
@@ -51,7 +53,7 @@ class FileHelper
 
                 switch ($action) {
                     case 'scaleDown':
-                        if (!$sizes) throw new Exception('Incorrect size');
+                        if (!$sizes || count($sizes) !== 2) throw new Exception('Incorrect size');
 
                         foreach ($sizes as $size) {
                             $size = (int)$size;
