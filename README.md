@@ -1,52 +1,49 @@
 # PHP Storage
 
-Небольшой сервис-хранилище файлов на [Slim 4](https://www.slimframework.com/). Принимает загрузку изображений и документов, раскладывает их по папкам с датой и отдаёт ссылки на оригиналы и уменьшенные копии (миниатюры).
+A small file storage service built on [Slim 4](https://www.slimframework.com/) for [Larbox 2](https://github.com/alinskydev/larbox-2). It accepts image and document uploads, organizes them into date-based folders, and returns links to the originals and their thumbnails.
 
-## Требования
+## Requirements
 
-- PHP 8.0+ с расширениями `gd`, `fileinfo`, `mbstring`
+- PHP 8.0+ with the `gd`, `fileinfo` and `mbstring` extensions
 - Composer
-- Apache с `mod_rewrite` (в проекте уже есть `.htaccess`)
 
-## Установка
+## Installation
 
 ```bash
 composer install
 cp .env.example .env
 ```
 
-Заполните `.env`:
+Fill in `.env`:
 
-| Переменная         | Описание                                                                 |
-|--------------------|--------------------------------------------------------------------------|
-| `IS_DEBUG_ENABLED` | Подробные ошибки Slim. `1` — включено, `0` — выключено                    |
-| `SECRET_KEY`       | Ключ доступа, который клиент передаёт в заголовке `Storage-Secret-Key`    |
+| Variable           | Description                                                                   |
+|--------------------|-------------------------------------------------------------------------------|
+| `IS_DEBUG_ENABLED` | Detailed Slim error output. `1` to enable, `0` to disable                     |
+| `SECRET_KEY`       | Access key that the client sends in the `Storage-Secret-Key` header           |
 
-Корневой `.htaccess` перенаправляет все запросы в `public/`, а `public/.htaccess` — в `public/index.php`. Веб-сервер должен иметь право записи в `public/storage/`: туда сохраняются файлы и миниатюры.
+## Authorization
 
-## Авторизация
-
-Каждый запрос должен содержать заголовок:
+Every request must include the header:
 
 ```
 Storage-Secret-Key: <SECRET_KEY>
 ```
 
-Без него или с неверным значением запрос отклоняется.
+Requests with a missing or invalid key are rejected.
 
-## Формат ответов
+## Response format
 
-Все ответы — JSON. При ошибке возвращается статус `400`:
+All responses are JSON. Errors are returned with status `400`:
 
 ```json
-{ "message": "Текст ошибки" }
+{ "message": "Error message" }
 ```
 
 ## API
 
 ### `GET /welcome`
 
-Проверка доступности сервиса.
+Checks that the service is up.
 
 ```json
 { "message": "Welcome!" }
@@ -54,27 +51,27 @@ Storage-Secret-Key: <SECRET_KEY>
 
 ### `POST /api/upload`
 
-Загрузка файлов. Тело запроса — `multipart/form-data`.
+Uploads files. The request body is `multipart/form-data`.
 
-| Поле      | Обязательно | Описание                                                                 |
-|-----------|-------------|--------------------------------------------------------------------------|
-| `files[]` | да          | От 1 до 10 файлов                                                        |
-| `type`    | да          | `images` или `files`                                                     |
-| `folder`  | нет         | Подпапка для сохранения, по умолчанию `all`                              |
-| `size`    | нет         | Только для `images`: максимальный размер в формате `ШИРИНАxВЫСОТА`, например `1920x1080` |
+| Field     | Required | Description                                                                         |
+|-----------|----------|-------------------------------------------------------------------------------------|
+| `files[]` | yes      | 1 to 10 files                                                                       |
+| `type`    | yes      | `images` or `files`                                                                 |
+| `folder`  | no       | Subfolder to save into, `all` by default                                            |
+| `size`    | no       | `images` only: maximum dimensions as `WIDTHxHEIGHT`, for example `1920x1080`        |
 
-Ограничения по типам:
+Limits by type:
 
-| `type`   | Расширения            | Макс. размер файла |
-|----------|-----------------------|--------------------|
-| `images` | `jpg`, `jpeg`, `png`  | 2 МБ               |
-| `files`  | `pdf`, `docx`, `xlsx` | 10 МБ              |
+| `type`   | Extensions            | Max file size |
+|----------|-----------------------|---------------|
+| `images` | `jpg`, `jpeg`, `png`  | 2 MB          |
+| `files`  | `pdf`, `docx`, `xlsx` | 10 MB         |
 
-Если передан `size`, изображение пропорционально уменьшается: горизонтальное — по ширине, вертикальное — по высоте. Изображения меньше указанного размера не увеличиваются.
+If `size` is provided, the image is scaled down proportionally: landscape images are fitted to the width, portrait images to the height. Images smaller than the given size are not enlarged.
 
-Файлы сохраняются в `public/storage/<type>/<folder>/ГГГГ/ММ/ДД/` под уникальным именем.
+Files are saved to `public/storage/<type>/<folder>/YYYY/MM/DD/` under a unique name.
 
-Пример:
+Example:
 
 ```bash
 curl -X POST https://php-storage.loc/api/upload \
@@ -85,7 +82,7 @@ curl -X POST https://php-storage.loc/api/upload \
   -F "files[]=@photo.jpg"
 ```
 
-Ответ:
+Response:
 
 ```json
 {
@@ -97,17 +94,17 @@ curl -X POST https://php-storage.loc/api/upload \
 
 ### `POST /api/get/images`
 
-Получение ссылок на изображения и их уменьшенные копии. Тело запроса — `application/x-www-form-urlencoded` или `multipart/form-data`.
+Returns links to images and their scaled-down copies. The request body is `application/x-www-form-urlencoded` or `multipart/form-data`.
 
-| Поле              | Обязательно | Описание                                                   |
-|-------------------|-------------|------------------------------------------------------------|
-| `files[N][path]`  | да          | Путь к файлу, полученный от `/api/upload` (от 1 до 10 файлов) |
-| `files[N][action]`| нет         | Действие над изображением. Сейчас поддерживается `scaleDown` |
-| `files[N][sizes]` | нет         | Ширины миниатюр через `\|`, от 1 до 1920, например `300\|600` |
+| Field              | Required | Description                                                          |
+|--------------------|----------|----------------------------------------------------------------------|
+| `files[N][path]`   | yes      | File path returned by `/api/upload` (1 to 10 files)                  |
+| `files[N][action]` | yes      | Action to apply to the image. Only `scaleDown` is currently supported |
+| `files[N][sizes]`  | no       | Thumbnail widths separated by `\|`, from 1 to 1920, for example `300\|600` |
 
-`scaleDown` уменьшает изображение до указанной ширины с сохранением пропорций. Миниатюры кешируются в `public/storage/thumbs/scaleDown/<ширина>/` и пересоздаются при изменении исходного файла. Если исходник уже меньше запрошенной ширины, вместо миниатюры возвращается ссылка на оригинал.
+`scaleDown` scales the image down to the given width, preserving the aspect ratio. Thumbnails are cached in `public/storage/thumbs/scaleDown/<width>/` and regenerated when the source file changes. If the source image is already narrower than the requested width, a link to the original is returned instead of a thumbnail.
 
-Пример:
+Example:
 
 ```bash
 curl -X POST https://php-storage.loc/api/get/images \
@@ -117,7 +114,7 @@ curl -X POST https://php-storage.loc/api/get/images \
   -d "files[0][sizes]=300|600"
 ```
 
-Ответ (ключи совпадают с индексами из запроса):
+Response (keys match the indexes from the request):
 
 ```json
 {
@@ -131,18 +128,4 @@ curl -X POST https://php-storage.loc/api/get/images \
 }
 ```
 
-Если файл не найден или миниатюру создать не удалось, ошибка не возвращается — в ответе остаётся ссылка на оригинал.
-
-## Структура проекта
-
-```
-base/
-  Config.php               — загрузка настроек из .env
-  FileHelper.php           — загрузка файлов и создание миниатюр
-  FileUploadConfigDTO.php  — правила загрузки для каждого типа файлов
-  ResponseHelper.php       — формирование JSON-ответов
-  StringHelper.php         — генерация UUID v4
-public/
-  index.php                — точка входа и маршруты
-  storage/                 — загруженные файлы (не в git)
-```
+If a file is not found or a thumbnail cannot be created, no error is returned; the response contains a link to the original instead.
